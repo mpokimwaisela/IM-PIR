@@ -1,0 +1,13 @@
+# IDE and editor files
+.vscode/
+
+# Build directories and artifacts
+**/build/
+**/build/**
+build/
+build/**
+
+# data directories (experimental data)
+**/data/
+**/plots/*.pdf
+
