@@ -15,7 +15,7 @@ OUTPUT_DIR = "./data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 logNs = [24, 25, 26, 27, 28]
-batch_sizes = [4, 8,  32]
+batch_sizes = [4, 8,  32, 64, 128]
 reps = 10
 dpu_counts = [64, 128, 256]
 max_dpus = dpu_counts[-1]
@@ -199,8 +199,8 @@ for logN in logNs:
 cpu_batch = pd.read_csv(os.path.join(OUTPUT_DIR, "cpu_batch.csv"))
 pim_batch = pd.read_csv(os.path.join(OUTPUT_DIR, "pim_batch.csv"))
 
-# Fixed batch size: smallest
-fixed_batch = min(cpu_batch["BatchSize"].unique())
+# Fixed batch size
+fixed_batch = 32
 
 # Fixed DB size: 1GB
 fixed_db_size = 1.0

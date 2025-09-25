@@ -1,32 +1,33 @@
 #include "dpf.h"
-#include "prf/AES.h"
-#include "util/Defines.h"
-#include "util/Log.h"
-#include "prf/PRNG.h"
+#include "../prf/AES.h"
+#include "../prf/PRNG.h"
+#include "../util/Log.h"
 #include <cassert>
 #include <iostream>
 
 namespace DPF {
 namespace prg {
 inline block getL(const block &seed) {
-  return mAesFixedKey.encryptECB_MMO(seed);
+  return mFixedKey.encryptECB_MMO(seed);
 }
 
 inline block getR(const block &seed) {
-  return mAesFixedKey2.encryptECB_MMO(seed);
+  return mFixedKey2.encryptECB_MMO(seed);
 }
 inline std::array<block, 8> getL8(const std::array<block, 8> &seed) {
   std::array<block, 8> out;
-  mAesFixedKey.encryptECB_MMO_Blocks(seed.data(), 8, out.data());
+  mFixedKey.encryptECB_MMO_Blocks(seed.data(), 8, out.data());
   return out;
 }
 
 inline std::array<block, 8> getR8(const std::array<block, 8> &seed) {
   std::array<block, 8> out;
-  mAesFixedKey2.encryptECB_MMO_Blocks(seed.data(), 8, out.data());
+  mFixedKey2.encryptECB_MMO_Blocks(seed.data(), 8, out.data());
   return out;
 }
-} // namespace prg
+} 
+
+// namespace prg
 inline block clr(block in) { return in & ~MSBBlock; }
 inline bool getT(block in) { return !is_zero(in & MSBBlock); }
 inline void clr8(std::array<block, 8> &in) {
@@ -42,18 +43,18 @@ inline std::array<uint8_t, 8> getT8(const std::array<block, 8> &in) {
   return out;
 }
 inline bool ConvertBit(block in) { return !is_zero(in & LSBBlock); }
-inline block ConvertBlock(block in) { return mAesFixedKey.encryptECB(in); }
+inline block ConvertBlock(block in) { return mFixedKey.encryptECB(in); }
 
 inline std::array<block, 8> ConvertBlock8(const std::array<block, 8> &in) {
   std::array<block, 8> out;
-  mAesFixedKey.encryptECBBlocks(in.data(), 8, out.data());
+  mFixedKey.encryptECBBlocks(in.data(), 8, out.data());
   return out;
 }
 
 std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Gen(size_t alpha,
                                                           size_t logn) {
   assert(logn <= 63);
-  assert(alpha < (1 << logn));
+  assert(alpha < (1ULL << logn));
   std::vector<uint8_t> ka, kb, CW;
   PRNG p = PRNG::getTestPRNG();
   block s0, s1;
@@ -155,7 +156,7 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Gen(size_t alpha,
 
 bool Eval(const std::vector<uint8_t> &key, size_t x, size_t logn) {
   assert(logn <= 63);
-  assert(x < (1 << logn));
+  assert(x < (1ULL << logn));
   block s;
   memcpy(&s, key.data(), 16);
   uint8_t t = key.data()[16];
@@ -204,6 +205,7 @@ bool Eval(const std::vector<uint8_t> &key, size_t x, size_t logn) {
 
 void EvalFullRecursive(const std::vector<uint8_t> &key, block s, uint8_t t,
                        size_t lvl, size_t stop, std::vector<uint8_t> &res) {
+                        
   if (lvl == stop) {
     if (t) {
       reg_arr_union tmp;
@@ -241,6 +243,7 @@ void EvalFullRecursive(const std::vector<uint8_t> &key, block s, uint8_t t,
 }
 
 std::vector<uint8_t> EvalFull(const std::vector<uint8_t> &key, size_t logn) {
+
   assert(logn <= 63);
   std::vector<uint8_t> data;
   if (logn >= 7)
@@ -293,6 +296,7 @@ void EvalFullRecursive8(const std::vector<uint8_t> &key,
 }
 
 std::vector<uint8_t> EvalFull8(const std::vector<uint8_t> &key, size_t logn) {
+
   assert(logn <= 63);
   std::vector<uint8_t> data;
   data.resize(1ULL << (logn - 3));
@@ -305,7 +309,6 @@ std::vector<uint8_t> EvalFull8(const std::vector<uint8_t> &key, size_t logn) {
   uint8_t t = key.data()[16];
   size_t stop = logn >= 7 ? logn - 7 : 0; // pack 7 layers in final CW
   assert(stop >= 3); // need 3 or more layers for this to make sense
-  
   // evaluate first 3 layers
   size_t lvl = 0;
   block sL = prg::getL(s);
@@ -425,7 +428,8 @@ std::vector<uint8_t> EvalFull8(const std::vector<uint8_t> &key, size_t logn) {
     sRRR ^= sCW;
   }
   std::array<block, 8> s_array{sLLL, sRLL, sLRL, sRRL, sLLR, sRLR, sLRR, sRRR};
-  std::array<uint8_t, 8> t_array{tLLL, tRLL, tLRL, tRRL,tLLR, tRLR, tLRR, tRRR};
+  std::array<uint8_t, 8> t_array{tLLL, tRLL, tLRL, tRRL,
+                                 tLLR, tRLR, tLRR, tRRR};
 
   EvalFullRecursive8(key, s_array, t_array, 3, stop, data_ptrs);
   return data;

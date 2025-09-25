@@ -19,7 +19,8 @@ PRNG::PRNG(PRNG && s) :
     mBufferByteCapacity(s.mBufferByteCapacity)
 {
     s.mBuffer.resize(0);
-    memset(&s.mAes, 0, sizeof(AES));
+    // Reset the moved-from object properly
+    s.mAes = AES{}; // Use default constructor instead of memset
     s.mBytesIdx = 0;
     s.mBlockIdx = 0;
     s.mBufferByteCapacity = 0;

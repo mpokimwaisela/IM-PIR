@@ -1,8 +1,5 @@
 #pragma once
-#include "../util/Defines.h"
 #include "AES.h"
-
-
 #include <vector>
 #include <cstring>
 

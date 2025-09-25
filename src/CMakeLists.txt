@@ -20,7 +20,7 @@ set(SRCS
     ../util/Defines.cpp
     ../util/Log.cpp
     ../prf/PRNG.cpp
-    dpf.cpp
+    ../dpf/dpf.cpp
     datastore.cpp)
 
 set(CMAKE_C_FLAGS "-ffunction-sections -Wall -maes -msse2 -msse4.1 -mavx2 -mpclmul -Wfatal-errors -pthread -Wno-strict-overflow -fopenmp -fPIC -Wno-ignored-attributes")

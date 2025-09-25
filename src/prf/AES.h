@@ -1,10 +1,8 @@
 #pragma once
 
 #include <cstdint>
-
 #include "../util/Defines.h"
-
-
+#include <openssl/evp.h>
 #include <wmmintrin.h>
 #include <xmmintrin.h>
 
@@ -13,6 +11,13 @@ public:
     AES();
     AES(const block& key);
     AES(const uint8_t* key);
+    ~AES();
+
+    AES(const AES&) = delete;
+    AES& operator=(const AES&) = delete;
+
+    AES(AES&& other) noexcept;
+    AES& operator=(AES&& other) noexcept;
 
     void setKey(const block& key);
     void setKey(const uint8_t* key);
@@ -23,6 +28,7 @@ public:
         encryptECB(plaintext, tmp);
         return tmp;
     }
+    
     void encryptECB_MMO(const block& plaintext, block& ciphertext) const;
     block encryptECB_MMO(const block& plaintext) const {
         block tmp;
@@ -36,17 +42,23 @@ public:
         decryptECB(ciphertext, tmp);
         return tmp;
     }
+
     void encryptECBBlocks(const block* plaintexts, uint64_t blockLength, block* ciphertexts) const;
     void encryptECB_MMO_Blocks(const block* plaintexts, uint64_t blockLength, block* ciphertexts) const;
+    void encryptCTR(uint64_t baseIdx, uint64_t blockLength, block* ciphertext) const;
 
-    void encryptCTR(uint64_t baseIdx, uint64_t blockLength, block * ciphertext) const;
-    block key;
 private:
-    block mRoundKeysEnc[11];
-    block mRoundKeysDec[11];
+    EVP_CIPHER_CTX* encrypt_ctx;
+    EVP_CIPHER_CTX* decrypt_ctx;
+    bool initialized;
+    
+public:
+    block key;
+
+private:
+    void initContexts();
+    void cleanupContexts();
 };
 
-// An AES instance with a fixed and public key
-extern const AES mAesFixedKey;
-extern const AES mAesFixedKey2;
-
+extern const AES mFixedKey;
+extern const AES mFixedKey2;

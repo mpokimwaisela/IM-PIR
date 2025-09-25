@@ -5,7 +5,7 @@
 #include <emmintrin.h>
 #include <smmintrin.h>
 
-#include "../gsl/gsl-lite.hpp"
+#include "./gsl-lite.hpp"
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)

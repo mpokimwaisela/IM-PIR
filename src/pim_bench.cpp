@@ -1,4 +1,4 @@
-#include "dpf.h"
+#include "./dpf/dpf.h"
 #include "dpu/common.h"
 #include "datastore.h"
 #include "util/concurentqueue.h"
@@ -32,9 +32,9 @@ static size_t NUM_DPUS = 128;
 Profiler profiler;
 std::vector<dpu_args_t> args(1);
 
-void setup_database(hashdatastore &store, size_t num_elements, size_t cluster);
+void setup_database(datastore &store, size_t num_elements, size_t cluster);
 void execution_pim(size_t N, std::vector<uint8_t> aaaa);
-void pim_batch_execution(size_t N, hashdatastore &store, size_t batch_size,
+void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
                          size_t reps);
 
 std::map<std::string, std::string> parse_args(int argc, char **argv) {
@@ -48,7 +48,7 @@ std::map<std::string, std::string> parse_args(int argc, char **argv) {
   return args;
 }
 
-void run_single_query_pim(hashdatastore &store, size_t N, size_t reps) {
+void run_single_query_pim(datastore &store, size_t N, size_t reps) {
 
   // 1. setup the database
   // 2. generate keys
@@ -77,7 +77,7 @@ void run_single_query_pim(hashdatastore &store, size_t N, size_t reps) {
   printf("\n");
 }
 
-void run_batch_query_pim(hashdatastore &store, size_t N, size_t batch_size,
+void run_batch_query_pim(datastore &store, size_t N, size_t batch_size,
                          size_t cluster, size_t reps) {
   // 2. generate batch keys
   // 3. evaluate batch keys
@@ -108,9 +108,9 @@ int main(int argc, char **argv) {
 
   size_t num_elements = 1ULL << N;
   double DB_size =
-      static_cast<double>(num_elements * sizeof(hashdatastore::hash_type)) /
+      static_cast<double>(num_elements * sizeof(datastore::db_record)) /
       static_cast<double>(SIZE_GB);
-  hashdatastore store;
+  datastore store;
   store.reserve(num_elements);
   cout << "Database Size: " << DB_size << " GB" << endl;
   setup_database(store, num_elements, cluster);
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-void setup_database(hashdatastore &store, size_t num_elements,
+void setup_database(datastore &store, size_t num_elements,
                     size_t cluster = 1) {
   try {
     assert(cluster > 0);
@@ -149,7 +149,7 @@ void setup_database(hashdatastore &store, size_t num_elements,
     size_t data_per_dpu =
         (num_elements + DPUS_PER_CLUSTER - 1) / DPUS_PER_CLUSTER;
     size_t database_size_per_dpu_bytes =
-        data_per_dpu * sizeof(hashdatastore::hash_type);
+        data_per_dpu * sizeof(datastore::db_record);
     args[0].database_size_bytes = database_size_per_dpu_bytes;
     args[0].num_batches = 1;
 
@@ -214,11 +214,11 @@ void execution_pim(size_t N, std::vector<uint8_t> aaaa) {
   profiler.accumulate("COPY.PIM->CPU");
 
   profiler.start("PIR.Aggregate");
-  hashdatastore::hash_type dpu_result = _mm256_setzero_si256();
+  datastore::db_record dpu_result = _mm256_setzero_si256();
 
   for (const auto &dpu_output : output_vectors) {
-    hashdatastore::hash_type partial;
-    std::memcpy(&partial, dpu_output.data(), sizeof(hashdatastore::hash_type));
+    datastore::db_record partial;
+    std::memcpy(&partial, dpu_output.data(), sizeof(datastore::db_record));
     dpu_result = _mm256_xor_si256(dpu_result, partial);
   }
 
@@ -227,7 +227,7 @@ void execution_pim(size_t N, std::vector<uint8_t> aaaa) {
 }
 
 
-void pim_batch_execution(size_t N, hashdatastore &store, size_t batch_size,
+void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
                          size_t reps) {
   // ---------------------------------------------
   // 1. Key generation (unchanged)
@@ -242,7 +242,7 @@ void pim_batch_execution(size_t N, hashdatastore &store, size_t batch_size,
 
   const size_t num_dpus = NUM_DPUS / dpu_clusters.size();
   const std::string event_name = "Batch = " + std::to_string(batch_size);
-  // using hash_type = hashdatastore::hash_type;
+  // using db_record = datastore::db_record;
 
   // ---------------------------------------------
   // 2. Moodycamel queue + done flag
@@ -306,9 +306,9 @@ void pim_batch_execution(size_t N, hashdatastore &store, size_t batch_size,
                 h.copy(dpu_output_vectors, "out");
                 h.sync();
 
-                hashdatastore::hash_type agg = _mm256_setzero_si256();
+                datastore::db_record agg = _mm256_setzero_si256();
                 for (auto &vec : dpu_output_vectors) {
-                    hashdatastore::hash_type part;
+                    datastore::db_record part;
                     memcpy(&part, vec.data(), sizeof(part));
                     agg = _mm256_xor_si256(agg, part);
                 }

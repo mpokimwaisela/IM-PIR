@@ -7,24 +7,24 @@
 
 #include "util/alignment_allocator.h"
 
-class hashdatastore {
+class datastore {
 public:
-  typedef __m256i hash_type;
+  typedef __m256i db_record;
 
-  hashdatastore() = default;
+  datastore() = default;
 
   void reserve(size_t n) { data_.reserve(n); }
   void resize(size_t n) { data_.resize(n); }
-  void push_back(const hash_type &data) { data_.push_back(data); }
-  void push_back(hash_type &&data) { data_.push_back(data); }
+  void push_back(const db_record &data) { data_.push_back(data); }
+  void push_back(db_record &&data) { data_.push_back(data); }
 
   void dummy(size_t n) { data_.resize(n, _mm256_set_epi64x(1, 2, 3, 4)); }
 
   size_t size() const { return data_.size(); }
 
-  hash_type answer_pir2(const std::vector<uint8_t> &indexing) const;
+  db_record answer_pir(const std::vector<uint8_t> &indexing) const;
 
 private:
-  std::vector<hash_type, AlignmentAllocator<hash_type, sizeof(hash_type)>>
+  std::vector<db_record, AlignmentAllocator<db_record, sizeof(db_record)>>
       data_;
 };

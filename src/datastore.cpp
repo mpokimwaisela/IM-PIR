@@ -3,10 +3,10 @@
 #include <cassert>
 #include <cstdio>
 
-hashdatastore::hash_type
-hashdatastore::answer_pir2(const std::vector<uint8_t> &indexing) const {
-  hash_type result = _mm256_set_epi64x(0, 0, 0, 0);
-  hash_type results[8] = {
+datastore::db_record
+datastore::answer_pir(const std::vector<uint8_t> &indexing) const {
+  db_record result = _mm256_set_epi64x(0, 0, 0, 0);
+  db_record results[8] = {
       {result}, {result}, {result}, {result},
       {result}, {result}, {result}, {result},
   };

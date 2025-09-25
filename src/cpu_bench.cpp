@@ -1,4 +1,4 @@
-#include "dpf.h"
+#include "./dpf/dpf.h"
 #include "datastore.h"
 #include "util/profiler.h"
 #include <cstddef>
@@ -29,13 +29,13 @@ std::map<std::string, std::string> parse_args(int argc, char **argv) {
   return args;
 }
 
-void setup_database(hashdatastore &store, size_t num_elements) {
+void setup_database(datastore &store, size_t num_elements) {
   for (size_t i = 0; i < num_elements; i++) {
     store.push_back(_mm256_set_epi64x(i, i, i, i));
   }
 }
 
-void run_single_query_vectorized(hashdatastore &store, size_t N, size_t reps) {
+void run_single_query_vectorized(datastore &store, size_t N, size_t reps) {
     profiler.start("DPF.KeyGen");
     auto keys = DPF::Gen(5, N);
     profiler.accumulate("DPF.KeyGen");
@@ -47,14 +47,14 @@ void run_single_query_vectorized(hashdatastore &store, size_t N, size_t reps) {
     profiler.accumulate("DPF.Eval");
 
     profiler.start("PIR.CPU");
-    volatile auto answer = store.answer_pir2(query);
+    volatile auto answer = store.answer_pir(query);
     profiler.accumulate("PIR.CPU");
 
   profiler.printAllTimes();
   profiler.reset();
 }
 
-void run_single_query_scalar(hashdatastore &store, size_t N, size_t reps) {
+void run_single_query_scalar(datastore &store, size_t N, size_t reps) {
   for (size_t i = 0; i < reps; ++i) {
     profiler.start("DPF.KeyGen");
     auto keys = DPF::Gen(5, N);
@@ -67,7 +67,7 @@ void run_single_query_scalar(hashdatastore &store, size_t N, size_t reps) {
     profiler.accumulate("DPF.Eval");
 
     profiler.start("PIR.CPU");
-    volatile auto answer = store.answer_pir2(query);
+    volatile auto answer = store.answer_pir(query);
     profiler.accumulate("PIR.CPU");
   }
 
@@ -75,18 +75,18 @@ void run_single_query_scalar(hashdatastore &store, size_t N, size_t reps) {
   profiler.reset();
 }
 
-// void batch_operation_cpu(size_t N, hashdatastore &store, vector<uint8_t>
+// void batch_operation_cpu(size_t N, datastore &store, vector<uint8_t>
 // &key,
-//                          size_t batch_size, hashdatastore::hash_type
+//                          size_t batch_size, datastore::db_record
 //                          *answers) {
 // #pragma omp parallel for
 //   for (size_t i = 0; i < batch_size; i++) {
 //     auto query = DPF::EvalFull(key, N);
-//     answers[i] = store.answer_pir2(query);
+//     answers[i] = store.answer_pir(query);
 //   }
 // }
 
-// void run_batch_query(hashdatastore &store, size_t N, size_t batch_size,
+// void run_batch_query(datastore &store, size_t N, size_t batch_size,
 //                      size_t reps) {
 
 //   auto keys = DPF::Gen(5, N);
@@ -94,7 +94,7 @@ void run_single_query_scalar(hashdatastore &store, size_t N, size_t reps) {
 //   auto base_query = DPF::EvalFull8(key, N);
 
 //   string event_name = "Batch=" + to_string(batch_size);
-//   hashdatastore::hash_type answers[batch_size];
+//   datastore::db_record answers[batch_size];
 
 //   profiler.start(event_name);
 //   for (size_t r = 0; r < reps; ++r) {
@@ -109,9 +109,9 @@ void run_single_query_scalar(hashdatastore &store, size_t N, size_t reps) {
 //   profiler.reset();
 // }
 
-void run_batch_query8(hashdatastore &store, size_t N, size_t batch_size,
+void run_batch_query8(datastore &store, size_t N, size_t batch_size,
                       size_t reps) {
-  using hash_type = hashdatastore::hash_type;
+  using db_record = datastore::db_record;
 
   // Step 1: Generate a batch of unique DPF keys
   std::vector<std::vector<uint8_t>> keys(batch_size);
@@ -126,7 +126,7 @@ void run_batch_query8(hashdatastore &store, size_t N, size_t batch_size,
   cout << "Batch size: " << batch_size << endl;
 
   // Step 2: Allocate answers buffer
-  std::vector<hash_type, AlignmentAllocator<hash_type, sizeof(hash_type)>>
+  std::vector<db_record, AlignmentAllocator<db_record, sizeof(db_record)>>
       answers(batch_size);
 
   // Step 3: Run the benchmark
@@ -137,7 +137,7 @@ void run_batch_query8(hashdatastore &store, size_t N, size_t batch_size,
 #pragma omp parallel for
     for (size_t i = 0; i < batch_size; ++i) {
       auto query = DPF::EvalFull8(keys[i], N);
-      answers[i] = store.answer_pir2(query);
+      answers[i] = store.answer_pir(query);
     }
     profiler.accumulate(event_name);
   }
@@ -152,9 +152,9 @@ void run_batch_query8(hashdatastore &store, size_t N, size_t batch_size,
   profiler.reset();
 }
 
-void run_batch_query(hashdatastore &store, size_t N, size_t batch_size,
+void run_batch_query(datastore &store, size_t N, size_t batch_size,
                      size_t reps) {
-  using hash_type = hashdatastore::hash_type;
+  using db_record = datastore::db_record;
 
   // Step 1: Generate a batch of unique DPF keys
   std::vector<std::vector<uint8_t>> keys(batch_size);
@@ -169,7 +169,7 @@ void run_batch_query(hashdatastore &store, size_t N, size_t batch_size,
   cout << "Batch size: " << batch_size << endl;
 
   // Step 2: Allocate answers buffer
-  std::vector<hash_type, AlignmentAllocator<hash_type, sizeof(hash_type)>>
+  std::vector<db_record, AlignmentAllocator<db_record, sizeof(db_record)>>
       answers(batch_size);
 
   // Step 3: Run the benchmark
@@ -180,7 +180,7 @@ void run_batch_query(hashdatastore &store, size_t N, size_t batch_size,
 #pragma omp parallel for
     for (size_t i = 0; i < batch_size; ++i) {
       auto query = DPF::EvalFull(keys[i], N);
-      answers[i] = store.answer_pir2(query);
+      answers[i] = store.answer_pir(query);
     }
     profiler.accumulate(event_name);
   }
@@ -213,11 +213,11 @@ int main(int argc, char **argv) {
   size_t num_elements = 1ULL << N;
 
   double DB_size =
-      static_cast<double>(num_elements * sizeof(hashdatastore::hash_type)) /
+      static_cast<double>(num_elements * sizeof(datastore::db_record)) /
       SIZE_GB;
   cout << "Database Size: " << DB_size << " GB" << endl;
 
-  hashdatastore store;
+  datastore store;
   store.reserve(num_elements);
   setup_database(store, num_elements);
 
