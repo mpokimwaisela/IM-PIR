@@ -15,10 +15,16 @@ The repo includes the PIR source code (src/) and scripts (plot/) for running ben
    
    ```bash
    cd src/build && cmake .. && make
-   cd ../../plots
    ```
+
+3. Simple functionality test
+   ```bash
+   ./test
+   ```
+
 3. Benchmark & plot:
    ```bash
+   cd ../../plots
    bash run.sh
    ```
    Results: see `plots/data/` (CSV) and `plots/` (PDF).
