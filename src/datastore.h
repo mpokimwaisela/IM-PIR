@@ -10,6 +10,7 @@
 class datastore {
 public:
   typedef __m256i db_record;
+  typedef std::vector<db_record, AlignmentAllocator<db_record, sizeof(db_record)>> aligned_vector;
 
   datastore() = default;
 
@@ -25,6 +26,5 @@ public:
   db_record answer_pir(const std::vector<uint8_t> &indexing) const;
 
 private:
-  std::vector<db_record, AlignmentAllocator<db_record, sizeof(db_record)>>
-      data_;
+  aligned_vector data_;
 };

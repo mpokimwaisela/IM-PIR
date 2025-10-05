@@ -1,5 +1,3 @@
-
-
 # IM-PIR: In-Memory Private Information Retrieval
 This repository contains the benchmarks for our IM-PIR paper.
 We use UPMEM PIM to demonstrate PIM, focusing on the XOR-scanning operation central to multi-server PIR.

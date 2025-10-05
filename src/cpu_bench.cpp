@@ -47,7 +47,7 @@ void run_single_query_vectorized(datastore &store, size_t N, size_t reps) {
     profiler.accumulate("DPF.Eval");
 
     profiler.start("PIR.CPU");
-    volatile auto answer = store.answer_pir(query);
+    store.answer_pir(query);
     profiler.accumulate("PIR.CPU");
 
   profiler.printAllTimes();
@@ -67,7 +67,7 @@ void run_single_query_scalar(datastore &store, size_t N, size_t reps) {
     profiler.accumulate("DPF.Eval");
 
     profiler.start("PIR.CPU");
-    volatile auto answer = store.answer_pir(query);
+    store.answer_pir(query);
     profiler.accumulate("PIR.CPU");
   }
 

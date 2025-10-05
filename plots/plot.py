@@ -15,7 +15,7 @@ OUTPUT_DIR = "./data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 logNs = [24, 25, 26, 27, 28]
-batch_sizes = [4, 8,  32, 64, 128]
+batch_sizes = [4, 8, 16, 32, 64, 128, 256, 512]
 reps = 10
 dpu_counts = [64, 128, 256]
 max_dpus = dpu_counts[-1]
@@ -217,7 +217,7 @@ for size in sorted(cpu_batch["size_GB"].unique()):
         ])
 write_dat("batch_plot1_latency.dat", "DB_Size\tCPU_Latency\tPIM_Latency", rows)
 
-# 2. batch_plot1_thoughput.dat: DB size, cpu throughput, pim throughput (fixed batch size)
+# 2. batch_plot1_throughput.dat: DB size, cpu throughput, pim throughput (fixed batch size)
 rows = []
 for size in sorted(cpu_batch["size_GB"].unique()):
     cpu_row = cpu_batch[(cpu_batch["size_GB"] == size) & (cpu_batch["BatchSize"] == fixed_batch)]
@@ -228,7 +228,7 @@ for size in sorted(cpu_batch["size_GB"].unique()):
             cpu_row.iloc[0]["Throughput_qps"],
             pim_row.iloc[0]["Throughput_qps"]
         ])
-write_dat("batch_plot1_thoughput.dat", "DB_Size\tCPU_Throughput\tPIM_Throughput", rows)
+write_dat("batch_plot1_throughput.dat", "DB_Size\tCPU_Throughput\tPIM_Throughput", rows)
 
 # 3. batch_plot2_latency.dat: batch size, cpu latency, pim latency (fixed DB size = 1GB)
 rows = []

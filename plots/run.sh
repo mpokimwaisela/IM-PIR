@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Build benchmark binaries, generate performance data CSVs, and create plots
+# 1. Compiles the C++ PIR implementation 
+# 2. Runs plot.py to execute benchmarks and generate CSV data
+# 3. Generates plots from data using gnuplot scripts
+
 echo "Compiling code in ../src/build..."
 cd ../src/build || exit 1
 cmake .. && make

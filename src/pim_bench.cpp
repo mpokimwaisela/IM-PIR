@@ -79,10 +79,6 @@ void run_single_query_pim(datastore &store, size_t N, size_t reps) {
 
 void run_batch_query_pim(datastore &store, size_t N, size_t batch_size,
                          size_t cluster, size_t reps) {
-  // 2. generate batch keys
-  // 3. evaluate batch keys
-  // 4. perform the dot product or xor operation for the CPU variant.
-
   pim_batch_execution(N, store, batch_size, reps);
 }
 
@@ -230,7 +226,7 @@ void execution_pim(size_t N, std::vector<uint8_t> aaaa) {
 void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
                          size_t reps) {
   // ---------------------------------------------
-  // 1. Key generation (unchanged)
+  // 1. Key generation 
   // ---------------------------------------------
   std::vector<std::vector<uint8_t>> keys(batch_size);
   std::mt19937 rng(std::random_device{}());
@@ -244,9 +240,6 @@ void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
   const std::string event_name = "Batch = " + std::to_string(batch_size);
   // using db_record = datastore::db_record;
 
-  // ---------------------------------------------
-  // 2. Moodycamel queue + done flag
-  // ---------------------------------------------
   moodycamel::ConcurrentQueue<BatchData> queue;
   std::atomic<bool> producers_done{false};
 
@@ -257,7 +250,11 @@ void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
     moodycamel::ProducerToken ptoken(queue);
     for (size_t b = start; b < end; ++b) {
       BatchData data;
-      data.query = DPF::EvalFull8(keys[b], N);
+
+      // Perform DPF evaluation
+      data.query = DPF::EvalFull8(keys[b], N); 
+
+      // Split the input query into num_dpus parts
       size_t elems = (data.query.size() + num_dpus - 1) / num_dpus;
       data.dpu_input_vectors.resize(num_dpus);
       for (size_t j = 0; j < num_dpus; ++j) {
@@ -268,6 +265,8 @@ void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
                            std::min((j + 1) * elems, data.query.size());
         data.dpu_input_vectors[j] = std::vector<uint8_t>(s, e);
       }
+
+      // Enqueue the batch data
       queue.enqueue(ptoken, std::move(data));
     }
   };
@@ -276,44 +275,77 @@ void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
   // 4. DPU submitter threads (bulk‑dequeue)
   // ---------------------------------------------
   // 
-  
-
       auto dpu_submitter = [&](dpu::DpuSet *set) {
         moodycamel::ConsumerToken ctoken(queue);
         // reserve a small buffer for bulk pop
         std::vector<BatchData> buf(32);
         std::vector<dpu_args_t> arguments(1);
+
         while (true) {
             size_t got = queue.try_dequeue_bulk(ctoken, buf.data(), buf.size());
             if (got == 0) {
-                if (producers_done.load(std::memory_order_acquire) && queue.size_approx() == 0)
-                    break;  // all work finished
+                if (producers_done.load(std::memory_order_acquire) && queue.size_approx() == 0) break;  // all work finished
                 std::this_thread::yield();
                 continue;
             }
+
+            // This sends one by one batch to the DPU need to be optimized to batch
+            // multiple batches together
+            // for (size_t idx = 0; idx < got; ++idx) {
+            //     BatchData &data = buf[idx];
+            //     std::vector<std::vector<uint8_t>> dpu_out(num_dpus, std::vector<uint8_t>(32));
+            //     if (!data.dpu_input_vectors.empty()){
+            //         arguments[0].input_indexing_size_bytes = data.dpu_input_vectors[0].size();
+            //         arguments[0].num_batches = got;
+            //         arguments[0].database_size_bytes = args[0].database_size_bytes;
+            //       } 
+            //     auto h = set->async();
+            //     h.copy("args", arguments);
+            //     h.copy(DPU_MRAM_HEAP_POINTER_NAME, args[0].database_size_bytes, data.dpu_input_vectors);
+            //     h.exec();
+            //     h.copy(dpu_out, "out");
+            //     h.sync();
+
+            //     datastore::db_record agg = _mm256_setzero_si256();
+            //     for (auto &vec : dpu_out) {
+            //         datastore::db_record part;
+            //         memcpy(&part, vec.data(), sizeof(part));
+            //         agg = _mm256_xor_si256(agg, part);
+            //     }
+            // }
+            
+            size_t output_size_per_dpu = sizeof(datastore::db_record)*got;
+            std::vector<std::vector<uint8_t>> batched_inputs(num_dpus);
+            std::vector<std::vector<uint8_t>> dpu_out(num_dpus, std::vector<uint8_t>(output_size_per_dpu)); 
+
             for (size_t idx = 0; idx < got; ++idx) {
                 BatchData &data = buf[idx];
-                std::vector<std::vector<uint8_t>> dpu_output_vectors(num_dpus, std::vector<uint8_t>(32));
-                if (!data.dpu_input_vectors.empty()){
-                    arguments[0].input_indexing_size_bytes = data.dpu_input_vectors[0].size();
-                    arguments[0].num_batches = got;
-                    arguments[0].database_size_bytes = args[0].database_size_bytes;
-                  } 
-                auto h = set->async();
-                h.copy("args", arguments);
-                h.copy(DPU_MRAM_HEAP_POINTER_NAME, args[0].database_size_bytes, data.dpu_input_vectors);
-                h.exec();
-                h.copy(dpu_output_vectors, "out");
-                h.sync();
-
-                datastore::db_record agg = _mm256_setzero_si256();
-                for (auto &vec : dpu_output_vectors) {
-                    datastore::db_record part;
-                    memcpy(&part, vec.data(), sizeof(part));
-                    agg = _mm256_xor_si256(agg, part);
+                for(size_t dpu_id = 0; dpu_id < num_dpus; ++dpu_id){
+                    if (!data.dpu_input_vectors[dpu_id].empty()){
+                        batched_inputs[dpu_id].insert(batched_inputs[dpu_id].end(), data.dpu_input_vectors[dpu_id].begin(), data.dpu_input_vectors[dpu_id].end());
+                    }
                 }
             }
-        }
+            arguments[0].input_indexing_size_bytes = batched_inputs[0].size()/got;
+            arguments[0].num_batches = got;
+            arguments[0].database_size_bytes = args[0].database_size_bytes;
+
+            set->copy("args", arguments);
+            set->copy(DPU_MRAM_HEAP_POINTER_NAME, args[0].database_size_bytes, batched_inputs);
+            set->exec();
+            // set->copy(dpu_out, output_size_per_dpu, DPU_MRAM_HEAP_POINTER_NAME, args[0].database_size_bytes);
+            set->copy(dpu_out, "out");
+
+            datastore::aligned_vector agg(got, _mm256_setzero_si256());
+
+            for (size_t dpu_id = 0; dpu_id < num_dpus; ++dpu_id) {
+                for (size_t idx = 0; idx < got; ++idx) {
+                        datastore::db_record part;
+                        memcpy(&part, dpu_out[dpu_id].data() + (idx * sizeof(datastore::db_record)), sizeof(part));
+                        agg[idx] = _mm256_xor_si256(agg[idx], part);
+                }
+            }
+          }
     };
 
   profiler.start(event_name);
@@ -345,7 +377,6 @@ void pim_batch_execution(size_t N, datastore &store, size_t batch_size,
       t.join();
 
     profiler.accumulate(event_name);
-    // reset for next rep
     producers_done.store(false, std::memory_order_relaxed);
   }
 
