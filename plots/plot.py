@@ -11,11 +11,10 @@ PIM_BINARY_PATH = os.path.join(BUILD_DIR, PIM_BINARY_NAME)
 CPU_BINARY_PATH = os.path.join(BUILD_DIR, CPU_BINARY_NAME)
 OUTPUT_DIR = "./data"
 
-# Create the output directory if it doesn't exist
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 logNs = [24, 25, 26, 27, 28]
-batch_sizes = [4, 8, 16, 32, 64, 128, 256, 512]
+batch_sizes = [4, 8, 16, 32, 64, 128]
 reps = 10
 dpu_counts = [64, 128, 256]
 max_dpus = dpu_counts[-1]

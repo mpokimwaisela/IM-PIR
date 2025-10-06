@@ -51,8 +51,8 @@ set title "{/:Bold (b) Throughput vs Batch Size (DB = 1 GiB)}"
 set xlabel "Batch Size"
 set ylabel "Throughput (QPS)"
 set logscale x 2
-set xrange [2.5:512]
-set xtics ("4" 4, "8" 8, "16" 16, "32" 32, "64" 64, "128" 128, "256" 256, "512" 512)
+set xrange [2.5:128]
+set xtics ("4" 4, "8" 8, "16" 16, "32" 32, "64" 64, "128" 128)
 
 
 plot \
@@ -79,8 +79,8 @@ set title "{/:Bold (d) Latency vs Batch Size (DB = 1 GiB)}"
 set xlabel "Batch Size"
 set ylabel "Latency (s)"
 set logscale x 2
-set xrange [2.5:512]
-set xtics ("4" 4, "8" 8, "16" 16, "32" 32, "64" 64, "128" 128, "256" 256, "512" 512)
+set xrange [2.5:128]
+set xtics ("4" 4, "8" 8, "16" 16, "32" 32, "64" 64, "128" 128)
 
 
 plot \

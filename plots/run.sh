@@ -7,12 +7,15 @@
 
 echo "Compiling code in ../src/build..."
 cd ../src/build || exit 1
-cmake .. && make
+cmake .. > /dev/null 2>&1 && make > /dev/null 2>&1
 compile_status=$?
 cd ../../plots || exit 1
 
 if [ $compile_status -ne 0 ]; then
-	echo "Compilation failed. Exiting."
+	echo "Compilation failed. Running with verbose output to show errors..."
+	cd ../src/build || exit 1
+	cmake .. && make
+	cd ../../plots || exit 1
 	exit 1
 fi
 
