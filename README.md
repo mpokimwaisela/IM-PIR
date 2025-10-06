@@ -1,10 +1,9 @@
 # IM-PIR: In-Memory Private Information Retrieval
-This repository contains the benchmarks for our IM-PIR paper.
-We use UPMEM PIM to demonstrate PIM, focusing on the XOR-scanning operation central to multi-server PIR.
+This repository provides the benchmarks for our IM-PIR paper, leveraging UPMEM PIM to accelerate the XOR-scanning operation in multi-server PIR.
 
-The repo includes:
-- source code (src/) 
-- scripts (plot/) for running benchmarks and generating plots.
+The repository includes:
+- **`src/`** — source code
+- **`plot/`** — scripts for running benchmarks and generating plots
 
 ## Quick Start
 
@@ -32,6 +31,6 @@ The repo includes:
    ```
    Results: see `plots/data/` (CSV) and `plots/` (PDF).
 
-Note: Paper benchmarks were run on a 2048-DPU UPMEM cloud server. 
-Development/testing used our 512-DPU server (509 functional). 
-For consistency and simpler data handling, experiments were limited to 256 DPUs with evenly sized databases.
+Note: Paper benchmarks were executed on a 2048-DPU UPMEM cloud server. 
+Performance may differ with varying DPU counts. 
+The benchmarks in this repository run on 256 DPUs from a 512-DPU system (509 operational) for easier data management.
