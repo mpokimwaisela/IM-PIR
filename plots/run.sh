@@ -6,6 +6,7 @@
 # 3. Generates plots from data using gnuplot scripts
 
 echo "Compiling code in ../src/build..."
+mkdir -p ../src/build
 cd ../src/build || exit 1
 cmake .. > /dev/null 2>&1 && make > /dev/null 2>&1
 compile_status=$?
